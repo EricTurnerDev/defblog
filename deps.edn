@@ -1,0 +1,3 @@
+;; Keep in-sync with bb.edn
+{:paths ["site" "src" "scripts"]
+ :deps {hiccup/hiccup {:mvn/version "2.0.0-RC3"}}}

@@ -3,18 +3,13 @@
 (ns build
   (:require [babashka.fs :as fs]
             [clojure.edn :as edn]
-            [hiccup2.core :as h]))
+            [hiccup2.core :as h]
+            [script]))
 
 (def site-dir (fs/path "site"))
 (def site-blog-dir (fs/path "site" "blog"))
 (def publish-dir (fs/path "publish"))
 (def publish-blog-dir (fs/path "publish" "blog"))
-
-;; Clean and recreate publish/
-(when (fs/exists? publish-dir)
-  (fs/delete-tree publish-dir))
-(fs/create-dirs publish-dir)
-(fs/create-dirs publish-blog-dir)
 
 (defn hiccup->html! [f out-path]
   (try
@@ -36,5 +31,15 @@
             out-rel-path (fs/path out-dir out-rel)]
         (hiccup->html! f out-rel-path)))))
 
-(process-pages site-blog-dir publish-blog-dir :recursive? true)
-(process-pages site-dir publish-dir)
+(defn -main [& args]
+  ;; Clean and recreate the directories.
+  (when (fs/exists? publish-dir)
+    (fs/delete-tree publish-dir))
+  (fs/create-dirs publish-dir)
+  (fs/create-dirs publish-blog-dir)
+
+  ;; Convert the hiccup files into html.
+  (process-pages site-blog-dir publish-blog-dir :recursive? true)
+  (process-pages site-dir publish-dir))
+
+(script/run -main *command-line-args*)

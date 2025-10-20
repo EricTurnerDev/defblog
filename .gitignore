@@ -84,3 +84,4 @@ http-client.private.env.json
 .idea/ApifoxUploaderProjectSetting.xml
 
 publish/
+.cpcache/
