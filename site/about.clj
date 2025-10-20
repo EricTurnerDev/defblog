@@ -1,6 +1,0 @@
-[:html
- [:head
-  [:title "About"]]
- [:body
-  [:h1 "About"]
-  [:p "Testing"]]]

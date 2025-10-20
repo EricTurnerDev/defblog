@@ -2,16 +2,22 @@
 
 (ns build
   (:require [babashka.fs :as fs]
+            [clojure.tools.cli :as cli]
             [clojure.edn :as edn]
             [hiccup2.core :as h]
             [script]))
 
-(def site-dir (fs/path "site"))
-(def site-blog-dir (fs/path "site" "blog"))
-(def publish-dir (fs/path "publish"))
-(def publish-blog-dir (fs/path "publish" "blog"))
+(def ^:const cli-options
+  [[nil "--example" "Build site-example instead of site"]])
 
-(defn hiccup->html! [f out-path]
+(def ^:const site-dir (fs/path "site"))
+(def ^:const site-example-dir (fs/path "site-example"))
+(def ^:const site-blog-dir (fs/path "site" "blog"))
+(def ^:const site-example-blog-dir (fs/path "site-example" "blog"))
+(def ^:const publish-dir (fs/path "publish"))
+(def ^:const publish-blog-dir (fs/path "publish" "blog"))
+
+(defn- hiccup->html! [f out-path]
   (try
     (let [hiccup-data (edn/read-string (slurp (str f)))     ; edn/read-string is safer than read-string (avoids code evaluation).
           html-output (str (h/html hiccup-data))]
@@ -21,7 +27,7 @@
       (binding [*out* *err*]
         (println "Failed to build" (str f) ":" (.getMessage e))))))
 
-(defn process-pages [in-dir out-dir & {:keys [recursive?] :or {recursive? false}}]
+(defn- process-pages [in-dir out-dir & {:keys [recursive?] :or {recursive? false}}]
   (let [pattern (if recursive? "**.clj" "*.clj")
         files (->> (fs/glob in-dir pattern)
                    (sort-by fs/file-name))]                 ; Sort by file name to make the build more predictable (glob order isn't guaranteed).
@@ -38,8 +44,12 @@
   (fs/create-dirs publish-dir)
   (fs/create-dirs publish-blog-dir)
 
-  ;; Convert the hiccup files into html.
-  (process-pages site-blog-dir publish-blog-dir :recursive? true)
-  (process-pages site-dir publish-dir))
+  (let [parsed-opts (cli/parse-opts args cli-options)
+        options (:options parsed-opts)
+        blog (if (:example options) site-example-blog-dir site-blog-dir)
+        site (if (:example options) site-example-dir site-dir)]
+    ;; Convert the hiccup files into html.
+    (process-pages blog publish-blog-dir :recursive? true)
+    (process-pages site publish-dir)))
 
 (script/run -main *command-line-args*)

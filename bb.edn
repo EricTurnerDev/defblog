@@ -4,4 +4,7 @@
  :tasks
  {build
   (do
-   (shell "bb scripts/build.bb"))}}
+   (shell "bb scripts/build.bb"))
+  build-example
+  (do
+    (shell "bb scripts/build.bb --example"))}}
