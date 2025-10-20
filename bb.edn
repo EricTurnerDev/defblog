@@ -1,0 +1,7 @@
+{:paths ["site"]
+ :deps {hiccup/hiccup {:mvn/version "2.0.0-RC3"}}
+ :tasks
+ {build
+  (do
+   (shell "mkdir -p publish")
+   (shell "bb build.bb"))}}
