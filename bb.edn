@@ -3,5 +3,4 @@
  :tasks
  {build
   (do
-   (shell "mkdir -p publish")
-   (shell "bb build.bb"))}}
+   (shell "bb scripts/build.bb"))}}

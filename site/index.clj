@@ -1,6 +1,6 @@
 [:html
  [:head
-  [:title "My Example Page"]]
+  [:title "Eric Turner"]]
  [:body
-  [:h1 "Hello, World!"]
-  [:p "This page was generated with Babashka + Hiccup."]]]
+  [:h1 "Eric Turner"]
+  [:p "Testing"]]]
