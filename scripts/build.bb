@@ -12,10 +12,9 @@
 
 (def ^:const site-dir (fs/path "site"))
 (def ^:const site-example-dir (fs/path "site-example"))
-(def ^:const site-blog-dir (fs/path "site" "blog"))
-(def ^:const site-example-blog-dir (fs/path "site-example" "blog"))
 (def ^:const publish-dir (fs/path "publish"))
-(def ^:const publish-blog-dir (fs/path "publish" "blog"))
+(def ^:const publish-blog-dir (fs/path publish-dir "blog"))
+(def ^:const publish-css-dir (fs/path publish-dir "css"))
 
 (defn- hiccup->html! [f out-path]
   (try
@@ -37,19 +36,25 @@
             out-rel-path (fs/path out-dir out-rel)]
         (hiccup->html! f out-rel-path)))))
 
+(defn- process-css! [in-dir out-dir]
+  (fs/copy-tree in-dir out-dir))
+
 (defn -main [& args]
   ;; Clean and recreate the directories.
   (when (fs/exists? publish-dir)
     (fs/delete-tree publish-dir))
   (fs/create-dirs publish-dir)
   (fs/create-dirs publish-blog-dir)
+  (fs/create-dirs publish-css-dir)
 
   (let [parsed-opts (cli/parse-opts args cli-options)
         options (:options parsed-opts)
-        blog (if (:example options) site-example-blog-dir site-blog-dir)
-        site (if (:example options) site-example-dir site-dir)]
+        site (if (:example options) site-example-dir site-dir)
+        blog (fs/path site "blog")
+        css (fs/path site "css")]
     ;; Convert the hiccup files into html.
     (process-pages blog publish-blog-dir :recursive? true)
-    (process-pages site publish-dir)))
+    (process-pages site publish-dir)
+    (process-css! css publish-css-dir)))
 
 (script/run -main *command-line-args*)
