@@ -22,11 +22,11 @@
   ([f out-path readers]
    (try
      (let [hiccup-data (edn/read-string {:readers readers} (slurp (str f))) ; edn/read-string is safer than read-string (avoids code evaluation).
-           meta-data (meta hiccup-data)
+           metadata (meta hiccup-data)
            html-output (str (h/html hiccup-data))]
        (fs/create-dirs (fs/parent out-path))                ; Make sure the output directory exists.
        (spit (str out-path) html-output)
-       (or meta-data {}))
+       (or metadata {}))
      (catch Exception e
        (binding [*out* *err*]
          (println "Failed to build" (str f) ":" (.getMessage e)))))))
@@ -37,7 +37,7 @@
    hello_world.clj             ->  \"Hello World\""
   [rel]
   (let [base (-> (fs/file-name rel)
-                 (str/replace #"\.clj$" "")
+                 (str/replace #"\.[^.]+(\.[^.]+)*$" "")     ; Match regular extensions (e.g. .clj) and multi-part extensions (e.g. .tar.gz).
                  (str/replace #"^\d{4}-?\d{2}-?\d{2}-?" "")
                  (str/replace #"[._-]+" " "))
         words (remove str/blank? (str/split base #"\s+"))]
@@ -77,11 +77,6 @@
         [:li (or item-attrs {})
          [:a {:href url} title]]))))
 
-(defn- copy-css
-  "Copies all the CSS files from in-dir to out-dir."
-  [in-dir out-dir]
-  (fs/copy-tree in-dir out-dir))
-
 (defn- process-index
   "Process index hiccup file from in-dir to out-dir."
   [in-dir out-dir posts]
@@ -106,9 +101,8 @@
         options (:options parsed-opts)
         site (if (:example options) site-example-dir site-dir)
         site-posts-dir (fs/path site "posts")
-        site-css-dir (fs/path site "css")
         posts (process-posts site-posts-dir (fs/path publish-dir "posts"))]
     (process-index site publish-dir posts)
-    (copy-css site-css-dir (fs/path publish-dir "css"))))
+    (fs/copy-tree (fs/path site "css") (fs/path publish-dir "css"))))
 
 (script/run -main *command-line-args*)
