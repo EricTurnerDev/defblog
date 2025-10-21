@@ -56,7 +56,7 @@
     {:title title :date date :url url :published published}))
 
 (defn- process-posts
-  "Process all posts from in-dir to out-dir."
+  "Process all posts from in-dir to out-dir. Returns a vector of metadata for the posts, sorted by most to least recent date."
   [in-dir out-dir]
   (let [pattern "*.clj"
         files (fs/glob in-dir pattern)]                 ; Sort by file name to make the build more predictable (glob order isn't guaranteed).
@@ -69,21 +69,21 @@
 
 (defn- create-posts-list-reader
   "Creates the reader function used by the #posts/list custom EDN tag to generate an unordered list of posts."
-  [posts]
+  [posts-metadata]
   (fn [{:keys [ul-attrs item-attrs]}]
     (into
       [:ul (or ul-attrs {})]
-      (for [{:keys [title url]} posts]
+      (for [{:keys [title date url]} posts-metadata]
         [:li (or item-attrs {})
-         [:a {:href url} title]]))))
+         [:a {:href url} (str date  " — " title)]]))))
 
 (defn- process-index
   "Process index hiccup file from in-dir to out-dir."
-  [in-dir out-dir posts]
+  [in-dir out-dir posts-metadata]
   (let [index-clj (fs/path in-dir "index.clj")
         index-html (fs/path out-dir "index.html")
         ;; readers are used by custom EDN tags in the index.clj file (e.g. to create a list of posts).
-        readers {'posts/list (create-posts-list-reader posts)}]
+        readers {'posts/list (create-posts-list-reader posts-metadata)}]
     (hiccup->html index-clj index-html readers)))
 
 (defn- recreate-publish-dir!
@@ -101,8 +101,8 @@
         options (:options parsed-opts)
         site (if (:example options) site-example-dir site-dir)
         site-posts-dir (fs/path site "posts")
-        posts (process-posts site-posts-dir (fs/path publish-dir "posts"))]
-    (process-index site publish-dir posts)
+        posts-metadata (process-posts site-posts-dir (fs/path publish-dir "posts"))]
+    (process-index site publish-dir posts-metadata)
     (fs/copy-tree (fs/path site "css") (fs/path publish-dir "css"))))
 
 (script/run -main *command-line-args*)
