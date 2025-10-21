@@ -1,10 +1,9 @@
 ;; Keep in-sync with deps.edn
 {:paths ["site" "src" "scripts"]
  :deps {hiccup/hiccup {:mvn/version "2.0.0-RC3"}}
+ :pods {org.babashka/fswatcher {:version "0.0.5"}}
  :tasks
- {build
-  (do
-   (shell "bb scripts/build.bb"))
-  build-example
-  (do
-    (shell "bb scripts/build.bb --example"))}}
+ {build {:doc "Build the site" :task (shell "bb scripts/build.bb")}
+  build-example {:doc "Build the example site" :task (shell "bb scripts/build.bb --example")}
+  dev {:doc "Watch + rebuild + live reload" :task (shell "bb scripts/dev.bb")}
+  dev-example {:doc "Watch + rebuild + live reload" :task (shell "bb scripts/dev.bb --example")}}}
