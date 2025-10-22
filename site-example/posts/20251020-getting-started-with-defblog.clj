@@ -6,4 +6,4 @@
   [:title "defblog — A minimal Babashka/Clojure static site generator"]]
  [:body
   [:h1 "A minimal Babashka static site generator"]
-  [:p "Welcome to defblog, my minimalistic static site generator written in Babashka."]]]
+  [:p "Welcome to DefBlog, a minimalistic static site generator written in Babashka."]]]
