@@ -10,7 +10,7 @@
 
 (def ^:const port 4000)
 (def ^:const cli-options
-  [[nil "--example" "Monitor and build site-example instead of site"]])
+  [["-e" "--example" "Monitor and build site-example instead of site"]])
 
 (pods/load-pod 'org.babashka/fswatcher "0.0.5")
 (require '[pod.babashka.fswatcher :as fw])
@@ -18,11 +18,17 @@
 ;; -- Utility functions ------------------------------------------------------------------------------------------------
 
 (defn run!
-  "Run a command, inherit stdio, return exit code."
+  "Run a command, wait for it to finish, and return the exit code. Blocking, one-shot."
   [& args]
-  (-> (process args {:inherit true}) deref :exit))
+  (-> (process args {:inherit true})
+      deref                                                 ; Wait for the process to exit.
+      :exit                                                 ; Extract the exit code.
+      ))
 
-(defn spawn! [& args]
+(defn spawn!
+  "Launch a long-running command (e.g. server) and keep it alive in parallel. Non-blocking, long-running."
+  [& args]
+  ;; Returns immediately with a handle to the subprocess.
   (process args {:inherit true}))
 
 ;; -- Browser sync functions -------------------------------------------------------------------------------------------
@@ -39,12 +45,15 @@
 
 ;; -- Functions for watching for changes -------------------------------------------------------------------------------
 
-(defn change-handler
-  [event]
-  (when (= :write (:type event))
-    (println "A change was detected in: " (:path event))
-    (run! "bb" "build-example")
-    (println "Update complete")))
+(defn create-change-handler
+  "Creates an event handler that calls on-change."
+  [on-change]
+  (fn
+    [event]
+    (when (= :write (:type event))
+      (println "A change was detected in: " (:path event))
+      (on-change)
+      (println "Update complete"))))
 
 (defn start-watch!
   [site on-change]
@@ -54,10 +63,13 @@
   [& args]
   (let [parsed-opts (cli/parse-opts args cli-options)
         options (:options parsed-opts)
-        site (if (:example options) "site-example" "site")]
-    (run! "bb" "build-example")                             ; Initial build
-    (start-watch! site change-handler)
+        site (if (:example options) "site-example" "site")
+        build-fn (if (:example options) #(run! "bb" "build-example") #(run! "bb" "build"))
+        on-change (create-change-handler build-fn)]
+    (build-fn)                                              ; Initial build
+    (start-watch! site on-change)
     (start-browser-sync!))
+  ;; Prevent -main from exiting.
   @(promise))
 
 (script/run -main *command-line-args*)

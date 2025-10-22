@@ -6,7 +6,6 @@
   [:title "defblog — getting started"]]
  [:body
   [:h1 "Getting started with defblog"]
-  [:h2 "Overview"]
   [:p "defblog is a static site generator designed for people who want a minimalistic tool for writing and publishing a
   simple website."]
   [:h2 "Features"]
@@ -32,4 +31,4 @@
   or site/ directories are changed. Run \"bb dev-example\" or \"bb dev\", and open your browser to the URL displayed in the terminal. Keep in mind that
   running in development mode requires Node.js to be installed."]
   [:h2 "Customizing Your Website"]
-  [:p "Start by copying all the files from the site-example/ directory into the site/ directory, then start editing those files."]]]
+  [:p "Start by copying all the files from the site-example/ directory into the site/ directory, then edit those files."]]]
