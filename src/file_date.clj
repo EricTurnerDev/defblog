@@ -28,7 +28,7 @@
 
 (defn extract
   "Given a path like foo/bar/2025-10-20-example.clj or foo/bar/20251020-example.clj,
- returns YYYY-MM-DD from the filename, or the file's creation/modified date if not present."
+ returns YYYY-MM-DD from the file name, or the file's creation/modified date if a date is not part of the file name."
   [relative-path]
   (let [s (str relative-path)]
     (if-let [ld (date-in-string->local-date s)]

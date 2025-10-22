@@ -3,9 +3,10 @@
 (ns dev
   (:require [babashka.pods :as pods]
             [babashka.process :refer [process]]
-            [clojure.java.io :as io]
             [clojure.tools.cli :as cli]
             [script]))
+
+;; -- Configuration ----------------------------------------------------------------------------------------------------
 
 (def ^:const port 4000)
 (def ^:const cli-options
@@ -14,10 +15,7 @@
 (pods/load-pod 'org.babashka/fswatcher "0.0.5")
 (require '[pod.babashka.fswatcher :as fw])
 
-(def pwd (System/getProperty "user.dir"))
-(def page-to-open (io/file pwd "publish/index.html"))
-
-;; -- Util functions ---------------------------------------------------------------------------------------------------
+;; -- Utility functions ------------------------------------------------------------------------------------------------
 
 (defn run!
   "Run a command, inherit stdio, return exit code."
@@ -27,7 +25,7 @@
 (defn spawn! [& args]
   (process args {:inherit true}))
 
-;; -- Browser sync -----------------------------------------------------------------------------------------------------
+;; -- Browser sync functions -------------------------------------------------------------------------------------------
 
 (defn start-browser-sync!
   []
@@ -39,14 +37,14 @@
           "--no-ui"
           "--port" port))
 
-;; -- Watch for changes ------------------------------------------------------------------------------------------------
+;; -- Functions for watching for changes -------------------------------------------------------------------------------
 
 (defn change-handler
   [event]
   (when (= :write (:type event))
-    (println "Detected write event")
+    (println "A change was detected in: " (:path event))
     (run! "bb" "build-example")
-    (println "Generated new site")))
+    (println "Update complete")))
 
 (defn start-watch!
   [site on-change]
@@ -54,15 +52,12 @@
 
 (defn -main
   [& args]
-
   (let [parsed-opts (cli/parse-opts args cli-options)
         options (:options parsed-opts)
         site (if (:example options) "site-example" "site")]
     (run! "bb" "build-example")                             ; Initial build
     (start-watch! site change-handler)
-    (start-browser-sync!)
-    )
-
+    (start-browser-sync!))
   @(promise))
 
 (script/run -main *command-line-args*)
