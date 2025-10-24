@@ -37,10 +37,11 @@ a:focus-visible {
 
 .site-header {
   padding: 1rem;
-  background-color: #ccc;
+  background-color: #eee;
 }
 .site-footer {
   padding: 1rem;
-  background-color: #ccc;
+  color: white;
+  background-color: #111;
 }
 
