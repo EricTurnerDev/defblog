@@ -103,11 +103,10 @@ in the post index.
 defblog/
 ├── bb.edn             # Babashka deps/tasks
 ├── deps.edn           # Clojure deps
-├── dev.bb             # Dev helper script (live reload, WebSocket refresh)
 ├── publish/           # Generated HTML output
 ├── scripts/           # Scripts for building, running the dev server, etc
     ├── build.bb       # Build script
-    ├── dev.bb         # Development server script
+    ├── dev.bb         # Dev helper script (live reload, WebSocket refresh)
 ├── site-example/      # Starter example site
 ├── site/              # Your site (copy from site-example)
 └── src/               # Namespaces for useful code
