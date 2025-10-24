@@ -84,7 +84,14 @@
         index-html (fs/path out-dir "index.html")
         ;; readers are used by custom EDN tags in the index.clj file (e.g. to create a list of posts).
         readers {'posts/list (create-posts-list-reader posts-metadata)}]
-    (hiccup->html index-clj index-html readers)))
+    (when (fs/exists? index-clj)
+      (hiccup->html index-clj index-html readers))))
+
+(defn- process-css
+  "Copies CSS files from in-dir to out-dir"
+  [in-dir out-dir]
+  (when (fs/exists? (fs/path in-dir "css"))
+    (fs/copy-tree (fs/path in-dir "css") (fs/path out-dir "css"))))
 
 (defn- recreate-publish-dir!
   "Deletes the existing publish directory, and creates it (and subdirectories)."
@@ -103,6 +110,6 @@
         site-posts-dir (fs/path site "posts")
         posts-metadata (process-posts site-posts-dir (fs/path publish-dir "posts"))]
     (process-index site publish-dir posts-metadata)
-    (fs/copy-tree (fs/path site "css") (fs/path publish-dir "css"))))
+    (process-css site publish-dir)))
 
 (script/run -main *command-line-args*)
