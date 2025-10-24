@@ -7,26 +7,118 @@
             [clojure.string :as str]
             [hiccup2.core :as h]
             [file-date :as fdt]
-            [script]))
+            [script])
+  (:import (java.time LocalDate)))
 
 (def ^:const cli-options
   [[nil "--example" "Build site-example instead of site"]])
-
-(def ^:const site-dir (fs/path "site"))
-(def ^:const site-example-dir (fs/path "site-example"))
+(def ^:const default-title "My Site")
 (def ^:const publish-dir (fs/path "publish"))
 
+(defonce site-dir (atom (fs/path "site")))
+
+(defn- configure!
+  "Changes site-dir to `site`. Typically used when building or running the site example."
+  [{:keys [site]}]
+  (when site (reset! site-dir (fs/path site))))
+
+(defn- get-site-dir
+  []
+  @site-dir)
+
+;; -- Layout / templating ----------------------------------------------------------------------------------------------
+
+(defn- load-partial [path]
+  (let [site (get-site-dir)
+        p (fs/path site "partials" path)]
+    (when (fs/exists? p)
+      (edn/read-string (slurp (str p))))))
+
+(defn- site-head
+  "Standard <head>. Title falls back to sensible default."
+  [{:keys [title]}]
+  [:head
+   [:meta {:charset "utf-8"}]
+   [:meta {:name "viewport" :content "width=device-width, initial-scale=1"}]
+   [:title (or title default-title)]
+   [:link {:rel "stylesheet" :href "/css/style.css"}]])
+
+(defn- fallback-site-header
+  "Top of page header/nav to use if the partial file doesn't exist."
+  []
+  [:header {:class "site-header"}
+   [:div {:class "wrap"}
+    [:a {:href "/"} "Home"]]])
+
+(defn site-header-from-file []
+  (or (load-partial "header.clj")
+      (fallback-site-header)))
+
+(defn- fallback-site-footer
+  "Bottom of page footer to use if the partial file doesn't exist."
+  []
+  [:footer {:class "site-footer"}
+   [:div {:class "wrap"}
+    "© " (.getYear (LocalDate/now)) " — Built with Babashka"]])
+
+(defn site-footer-from-file []
+  (or (load-partial "footer.clj")
+      (fallback-site-footer)))
+
+(defn- layout
+  "Default page layout. Expects `content` has hiccup and a context map (title, etc.)."
+  [content ctx]
+  [:html {:lang "en"}
+   (site-head ctx)
+   [:body
+    (site-header-from-file)
+    [:main {:class "container"} content]
+    (site-footer-from-file)]])
+
+(defn- bare-layout
+  "Minimal layout if you need one (per-page override)."
+  [content ctx]
+  [:html {:lang "en"}
+   (site-head ctx)
+   [:body content]])
+
+(def layout-table
+  "Per-page layout overrides via ^{:layout :key} metadata."
+  {:default layout
+   :bar     bare-layout})
+
+(defn- top-level-html?
+  "Returns true if the hiccup looks like a full [:html ...] tree."
+  [x]
+  (and (vector? x) (= :html (first x))))
+
+(defn- pick-layout
+  "Choose a layout function from metadata (e.g. ^{:layout :bare})."
+  [m]
+  (get layout-table (or (:layout m) :default) layout))
+
+(defn- wrap-page
+  "If `hiccup-data` is a fragment, wrap with site layout using metadata ctx.
+  If it's already [:html ...], leave it as-is."
+  [hiccup-data meta*]
+  (if (top-level-html? hiccup-data)
+    hiccup-data
+    ((pick-layout meta*) hiccup-data meta*)))
+
 (defn- hiccup->html
-  "Converts Hiccup file f into an html file at out-path. Returns metadata from the Hiccup file."
+  "Converts Hiccup (or EDN) file `f` into an html file at `out-path`.
+  Supports custom readers for tag functions (e.g. #posts/list).
+  Returns metadata from the Hiccup file."
   ([f out-path] (hiccup->html f out-path nil))
   ([f out-path readers]
    (try
      (let [hiccup-data (edn/read-string {:readers readers} (slurp (str f))) ; edn/read-string is safer than read-string (avoids code evaluation).
-           metadata (meta hiccup-data)
-           html-output (str (h/html hiccup-data))]
+           meta* (or (meta hiccup-data) {})
+           page (wrap-page hiccup-data meta*)
+           html-output (str (h/html page))]
        (fs/create-dirs (fs/parent out-path))                ; Make sure the output directory exists.
        (spit (str out-path) html-output)
-       (or metadata {}))
+       meta*)
      (catch Exception e
        (binding [*out* *err*]
          (println "Failed to build" (str f) ":" (.getMessage e)))))))
@@ -44,9 +136,10 @@
     (->> words (map #(str (str/upper-case (subs % 0 1)) (subs % 1))) (str/join " "))))
 
 (defn- process-post
-  "Process post from file f in in-dir to out-dir, and returns metadata about the post."
-  [in-dir out-dir f]
-  (let [in-file (str (fs/relativize in-dir f))              ; file path and name relative to the posts directory (e.g. example/20251020-example.clj)
+  "Process post from file f in the site directory to out-dir, and returns metadata about the post."
+  [out-dir f]
+  (let [in-dir (get-site-dir)
+        in-file (str (fs/relativize in-dir f))              ; file path and name relative to the posts directory (e.g. example/20251020-example.clj)
         out-file (str (fs/strip-ext in-file) ".html")       ; file path and name relative to the publish directory (e.g. example/20251020-example.html)
         metadata (hiccup->html f (fs/path out-dir out-file)) ; metadata from the hiccup file after converting to html
         published (:published metadata)
@@ -56,12 +149,13 @@
     {:title title :date date :url url :published published}))
 
 (defn- process-posts
-  "Process all posts from in-dir to out-dir. Returns a vector of metadata for the posts, sorted by most to least recent date."
-  [in-dir out-dir]
-  (let [pattern "*.clj"
-        files (fs/glob in-dir pattern)]                 ; Sort by file name to make the build more predictable (glob order isn't guaranteed).
+  "Process all posts from the site directory to out-dir. Returns a vector of metadata for the posts, sorted by most to least recent date."
+  [out-dir]
+  (let [in-dir (fs/path (get-site-dir) "posts")
+        pattern "*.clj"
+        files (fs/glob in-dir pattern)]                     ; Sort by file name to make the build more predictable (glob order isn't guaranteed).
     (->> files
-         (map (partial process-post in-dir out-dir))
+         (map (partial process-post out-dir))
          (filter :published)
          (sort-by :date)
          (reverse)                                          ;; Newest filenames first if they're date prefixed
@@ -75,12 +169,12 @@
       [:ul (or ul-attrs {})]
       (for [{:keys [title date url]} posts-metadata]
         [:li (or item-attrs {})
-         [:a {:href url} (str date  " — " title)]]))))
+         [:a {:href url} (str date " — " title)]]))))
 
 (defn- process-index
-  "Process index hiccup file from in-dir to out-dir."
-  [in-dir out-dir posts-metadata]
-  (let [index-clj (fs/path in-dir "index.clj")
+  "Process index hiccup file from the site directory to out-dir."
+  [out-dir posts-metadata]
+  (let [index-clj (fs/path (get-site-dir) "index.clj")
         index-html (fs/path out-dir "index.html")
         ;; readers are used by custom EDN tags in the index.clj file (e.g. to create a list of posts).
         readers {'posts/list (create-posts-list-reader posts-metadata)}]
@@ -88,10 +182,13 @@
       (hiccup->html index-clj index-html readers))))
 
 (defn- process-css
-  "Copies CSS files from in-dir to out-dir"
-  [in-dir out-dir]
-  (when (fs/exists? (fs/path in-dir "css"))
-    (fs/copy-tree (fs/path in-dir "css") (fs/path out-dir "css"))))
+  "Copies CSS files to out-dir"
+  [out-dir]
+  (let [in-dir (get-site-dir)
+        css-in-dir (fs/path in-dir "css")
+        css-out-dir (fs/path out-dir "css")]
+    (when (fs/exists? css-in-dir)
+      (fs/copy-tree css-in-dir css-out-dir))))
 
 (defn- recreate-publish-dir!
   "Deletes the existing publish directory, and creates it (and subdirectories)."
@@ -105,11 +202,10 @@
 (defn -main [& args]
   (recreate-publish-dir!)
   (let [parsed-opts (cli/parse-opts args cli-options)
-        options (:options parsed-opts)
-        site (if (:example options) site-example-dir site-dir)
-        site-posts-dir (fs/path site "posts")
-        posts-metadata (process-posts site-posts-dir (fs/path publish-dir "posts"))]
-    (process-index site publish-dir posts-metadata)
-    (process-css site publish-dir)))
+        options (:options parsed-opts)]
+    (if (:example options) (configure! {:site "site-example"}))
+    (let [posts-metadata (process-posts (fs/path publish-dir "posts"))]
+      (process-index publish-dir posts-metadata)
+      (process-css publish-dir))))
 
 (script/run -main *command-line-args*)

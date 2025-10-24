@@ -1,3 +1,17 @@
+html, body {
+  height: 100%;     /* allow flexbox to stretch full viewport */
+  margin: 0;
+}
+
+body {
+  display: flex;
+  flex-direction: column;
+}
+
+main {
+  flex: 1;          /* expands to fill available space */
+}
+
 ul,
 ol {
   list-style: none;
@@ -16,3 +30,17 @@ a:focus-visible {
   text-underline-offset: 3px;               /* nicer gap */
   text-decoration-skip-ink: auto;           /* skip descenders */
 }
+
+.container {
+  padding: 1rem;
+}
+
+.site-header {
+  padding: 1rem;
+  background-color: #ccc;
+}
+.site-footer {
+  padding: 1rem;
+  background-color: #ccc;
+}
+
