@@ -1,8 +1,9 @@
-^{:title "Getting started with defblog"
+^{:title "Getting started"
   :date "2025-10-21"
   :published true}
 [:article
  [:h1 "Getting started with defblog"]
+ [:img {:src "/images/getting-started.jpg"}]
  [:p "defblog is a static site generator designed for people who want a minimalistic tool for writing and publishing a
   simple website."]
  [:h2 "Features"]

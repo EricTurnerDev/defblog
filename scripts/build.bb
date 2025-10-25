@@ -12,8 +12,11 @@
 
 (def ^:const cli-options
   [[nil "--example" "Build site-example instead of site"]])
-(def ^:const default-title "My Site")
+(def ^:const website-name "defblog")
+(def ^:const default-title "A minimalistic static site generator for people who love Clojure")
 (def ^:const publish-dir (fs/path "publish"))
+
+;; -- Directory to read the website files from -------------------------------------------------------------------------
 
 (defonce site-dir (atom (fs/path "site")))
 
@@ -40,7 +43,7 @@
   [:head
    [:meta {:charset "utf-8"}]
    [:meta {:name "viewport" :content "width=device-width, initial-scale=1"}]
-   [:title (or title default-title)]
+   [:title (if title (str website-name " — " title) default-title)]
    [:link {:rel "stylesheet" :href "/css/style.css"}]])
 
 (defn- fallback-site-header
@@ -181,14 +184,23 @@
     (when (fs/exists? index-clj)
       (hiccup->html index-clj index-html readers))))
 
+(defn- copy-dir
+  [dir out-dir]
+  (let [site-dir (get-site-dir)
+        src-dir (fs/path site-dir dir)
+        dest-dir (fs/path out-dir dir)]
+    (when (fs/exists? src-dir)
+      (fs/copy-tree src-dir dest-dir))))
+
 (defn- process-css
   "Copies CSS files to out-dir"
   [out-dir]
-  (let [in-dir (get-site-dir)
-        css-in-dir (fs/path in-dir "css")
-        css-out-dir (fs/path out-dir "css")]
-    (when (fs/exists? css-in-dir)
-      (fs/copy-tree css-in-dir css-out-dir))))
+  (copy-dir "css" out-dir))
+
+(defn- process-images
+  "Copies image files files to out-dir"
+  [out-dir]
+  (copy-dir "images" out-dir))
 
 (defn- recreate-publish-dir!
   "Deletes the existing publish directory, and creates it (and subdirectories)."
@@ -197,7 +209,8 @@
     (fs/delete-tree publish-dir))
   (fs/create-dirs publish-dir)
   (fs/create-dirs (fs/path publish-dir "posts"))
-  (fs/create-dirs (fs/path publish-dir "css")))
+  (fs/create-dirs (fs/path publish-dir "css"))
+  (fs/create-dirs (fs/path publish-dir "images")))
 
 (defn -main [& args]
   (recreate-publish-dir!)
@@ -206,6 +219,7 @@
     (if (:example options) (configure! {:site "site-example"}))
     (let [posts-metadata (process-posts (fs/path publish-dir "posts"))]
       (process-index publish-dir posts-metadata)
-      (process-css publish-dir))))
+      (process-css publish-dir)
+      (process-images publish-dir))))
 
 (script/run -main *command-line-args*)
