@@ -164,6 +164,15 @@
          (reverse)                                          ;; Newest filenames first if they're date prefixed
          (vec))))
 
+(defn- friendly-date
+  "Convert a YYYY-M-D string to a friendly 'Month D, YYYY' string."
+  [date-str]
+  (let [months ["January" "February" "March" "April" "May" "June"
+                "July" "August" "September" "October" "November" "December"]
+        [y m d] (map #(Integer/parseInt %) (str/split date-str #"-"))
+        month-name (nth months (dec m))]
+    (format "%s %d, %d" month-name d y)))
+
 (defn- create-posts-list-reader
   "Creates the reader function used by the #posts/list custom EDN tag to generate an unordered list of posts."
   [posts-metadata]
@@ -172,7 +181,7 @@
       [:ul (or ul-attrs {})]
       (for [{:keys [title date url]} posts-metadata]
         [:li (or item-attrs {})
-         [:a {:href url} (str date " — " title)]]))))
+         [:a {:href url} (str title " — " (friendly-date date))]]))))
 
 (defn- process-index
   "Process index hiccup file from the site directory to out-dir."

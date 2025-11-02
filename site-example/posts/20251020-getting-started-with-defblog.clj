@@ -1,4 +1,4 @@
-^{:title "Getting started"
+^{:title "Getting Started"
   :date "2025-10-21"
   :published true}
 [:article
