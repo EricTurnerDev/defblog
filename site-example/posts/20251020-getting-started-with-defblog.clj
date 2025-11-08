@@ -15,9 +15,9 @@
   [:li "Run in development mode while writing to see your changes in a browser without needing to refresh or restart anything."]]
  [:h2 "Installation"]
  [:p "Install " [:a {:href "https://github.com/babashka/babashka#installation"} "Babashka"] "."]
- [:p "Install " [:a {:href "https://docs.npmjs.com/downloading-and-installing-node-js-and-npm"} "Node.js"]
-  " (only necessary if you want to run defblog in development mode). I strongly recommend using a Node version manager to install Node.js."]
  [:p "Clone the git repository. You are now ready to build and view the example website, and start creating your own website."]
+ [:p "Optional: Install " [:a {:href "https://docs.npmjs.com/downloading-and-installing-node-js-and-npm"} "Node.js"]
+  " if you want to run defblog in development mode. I strongly recommend using a Node version manager to install Node.js."]
  [:h2 "Running"]
  [:p "Start by building the example website included with defblog. Change into the defblog directory and run \"bb build-example\".
   This will process the files in the site-example/ directory, and output them into the publish/ directory. You can open the publish/index.html
