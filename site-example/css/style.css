@@ -39,9 +39,14 @@ a:focus-visible {
   padding: 1rem;
   background-color: #eee;
 }
+
 .site-footer {
   padding: 1rem;
-  color: white;
+  font-size: 0.8em;
+  color: #eee;
   background-color: #111;
+}
+.site-footer a {
+  color: #fff;
 }
 

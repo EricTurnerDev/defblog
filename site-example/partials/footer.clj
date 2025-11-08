@@ -1,3 +1,3 @@
 [:footer {:class "site-footer"}
  [:div {:class "wrap"}
-  "© 2025 — defblog"]]
+  "Powered by " [:a {:href "https://github.com/EricTurnerDev/defblog"} "defblog"]]]
