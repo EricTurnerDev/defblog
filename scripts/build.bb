@@ -88,7 +88,7 @@
 (def layout-table
   "Per-page layout overrides via ^{:layout :key} metadata."
   {:default layout
-   :bar     bare-layout})
+   :bare    bare-layout})
 
 (defn- top-level-html?
   "Returns true if the hiccup looks like a full [:html ...] tree."
